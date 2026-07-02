@@ -174,10 +174,34 @@ class OidcAuth {
         this.persistUserInfo(user);
         return true;
       }
+      statusErrorMsg('OIDC', 'Silent renewal completed but no fresh id_token was issued; '
+        + 'your provider may not reissue id_tokens on refresh.');
     } catch (err) {
       statusErrorMsg('OIDC', 'Silent token renewal failed, using interactive sign-in', err);
     }
     return false;
+  }
+
+  /* Called from request.js if we get a 401 back */
+  async renewForApiRequest() {
+    if (!this.silentRenewEnabled) {
+      statusErrorMsg('OIDC', 'API request needs a fresh token, but silent renewal is disabled');
+      return false;
+    }
+    const user = await this.userManager.getUser();
+    if (!user) {
+      statusErrorMsg('OIDC', 'API request was rejected and there is no active session to renew. Please sign in again.');
+      return false;
+    }
+    if (!user.refresh_token) {
+      statusErrorMsg(
+        'OIDC',
+        'API request needs a fresh token, but none is available. '
+        + 'If this persists, ensure offline_access is granted, then sign in again.',
+      );
+      return false;
+    }
+    return this.trySilentRenew();
   }
 
   /* Start OIDC background renewal for confirmed sessions if enabled */
