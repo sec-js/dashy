@@ -188,9 +188,9 @@ class OidcAuth {
       statusErrorMsg('OIDC', 'API request needs a fresh token, but silent renewal is disabled');
       return false;
     }
-    const user = await this.userManager.getUser();
+    const user = await this.userManager.getUser().catch(() => null);
     if (!user) {
-      statusErrorMsg('OIDC', 'API request was rejected and there is no active session to renew. Please sign in again.');
+      statusErrorMsg('OIDC', 'No active session to renew; sign in again.');
       return false;
     }
     if (!user.refresh_token) {
